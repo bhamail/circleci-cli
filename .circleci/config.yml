@@ -122,6 +122,25 @@ jobs:
           path: coverage.txt
       - slack-notify-on-failure
 
+  scan:
+    executor: go
+    steps:
+      - checkout
+      - setup_remote_docker:
+          docker_layer_caching: true
+      - run:
+          name: Set up docker with local build support
+          command: |
+            if [[ $CIRCLE_SHELL_ENV == *"localbuild"* ]]; then
+                echo "export docker='sudo docker'" >> $BASH_ENV
+            else
+                echo "export docker='docker'" >> $BASH_ENV
+            fi
+      - run:
+          name: Run Nancy Scan
+          command: |
+            go list -m all | $docker run -i sonatypecommunity/nancy:latest -quiet
+
   docs:
     executor: go
     steps:
@@ -252,6 +271,7 @@ workflows:
       - test_mac
       - coverage
       - lint
+      - scan
       - deploy-test
       - docs:
           requires:
